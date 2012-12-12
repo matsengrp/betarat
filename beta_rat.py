@@ -5,6 +5,9 @@ import scipy
 import scipy.special
 
 
+VERBOSE = False
+
+
 __version__ = '0.0.1'
 
 B = scipy.special.beta
@@ -34,7 +37,7 @@ class BetaRat(object):
                     self.b1, 1/w) / self.A
 
     def ppf(self, q, **kw_args):
-        return simpson_quant_hp(self.pdf, 0, q, **kw_args)
+        return simpson_quant_hp(self.pdf, q, **kw_args)
 
 
 
@@ -112,7 +115,8 @@ def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
         cur_sum = f_(0)
         # Depth is 0-based, so we set this before we've added the latest EvalSet
         depth = len(eval_sets)
-        print "Depth level:", depth
+        if VERBOSE:
+            print "Depth level:", depth
         es_h = h if depth == 0 else h * 2.0
         es_a = h / 2 ** (depth)
         eval_sets.append(EvalSet(f_, es_a, es_h))
@@ -163,6 +167,9 @@ def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
 
 
 def normal_test():
+    global VERBOSE
+    VERBOSE = True
+
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('q', default=0.25, type=float)
@@ -219,7 +226,7 @@ def cli():
 
 
 if __name__ == '__main__':
-    cli()
+    normal_test()
 
 
 
