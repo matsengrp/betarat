@@ -157,7 +157,7 @@ def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
             cur_sum, x = next_level(eval_sets, h)
         except MissingMass:
             print "Missing mass - decreasing h_init"
-            return simpson_quant_hp(h, q, a=a, tolerance=tolerance, h_init=h_init*(0.1))
+            return simpson_quant_hp(f, q, a=a, tolerance=tolerance, h_init=h_init*(0.1))
         sums.append(cur_sum * (h/3))
         h /= 2.0
     
@@ -226,7 +226,7 @@ def cli():
 
 
 if __name__ == '__main__':
-    normal_test()
+    cli()
 
 
 
