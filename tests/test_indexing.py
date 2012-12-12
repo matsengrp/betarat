@@ -5,7 +5,7 @@ from beta_rat import determine_eval_set, navigate, EvalSet
 class TestIndexing(unittest.TestCase):
     def setUp(self):
         self.eval_sets = [EvalSet(math.floor, 0, 0.5) for i in xrange(5)]
-        self.navigator = navigate(self.eval_sets)
+        self.navigator = navigate(self.eval_sets, 1000)
 
     def test_determine_eval_set(self):
         self.assertEqual(determine_eval_set(0, 3), 0)

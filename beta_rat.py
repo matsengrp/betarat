@@ -34,15 +34,7 @@ class BetaRat(object):
                     self.b1, 1/w) / self.A
 
     def ppf(self, q, **kw_args):
-        if q <= 0.5:
-            return simpson_quant(self.pdf, 0, q, **kw_args)
-        else:
-            # In this case, we use a transform to alter the problem so that we can compute the area under the
-            # curve from the left. This helps us avoid issues with missing the mass really early on when
-            # curves are supremely steep
-            left_fun = lambda t: self.pdf((t-1)/t) /t ** 2
-            a = simpson_quant(left_fun, 0, 1-q, remove_first_point=True, **kw_args)
-            return (a - 1) / a
+        return simpson_quant_hp(self.pdf, 0, q, **kw_args)
 
 
 
@@ -70,10 +62,7 @@ class EvalSet(object):
         return self.a + index * self.h
 
 
-class MaxIterationsExceeded(Exception):
-    pass
-
-class MaxDepthExceeded(Exception):
+class MissingMass(Exception):
     pass
 
 
@@ -97,84 +86,96 @@ def inner_index(i, n, j):
     lower_exp = (n - j) if j == 0 else (n - j) + 1
     return int((i - 2 ** (n - j)) / 2 ** lower_exp)
 
-def navigate(eval_sets):
+def navigate(eval_sets, max_iter):
     """ This is how we iterate through the eval sets and their evaluations """
     depth = len(eval_sets) - 1
-    outer_index = 1
-    while True:
+    for outer_index in xrange(1, max_iter):
         es_index = determine_eval_set(outer_index, depth)
         yield outer_index, eval_sets[es_index], inner_index(outer_index, depth, es_index)
-        outer_index += 1
 
 
-def simpson_quant(f, a, q, tolerance=1e-5, h_init=0.001, max_init_iter=1e5, remove_first_point=False):
+def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
+    """ Simpson Half Plane Quantiles - uses a half infinite interval transform to give finite bounds for
+    integration of pdf (all that is needed for the beta_rat distribution since D = [0, \inf)). This function
+    could be modified to use full-infinite integral transform for general use case scenario. """
+
+    # XXX - Should still really put something in as we were doing that flips the function around the x-axis. Wouldn't
+    # be hard and would likely save us a lot of hassle
+    
+    g = lambda t: a + t / (1 - t)
+    g_ = lambda t: 1 / (1 - t) ** 2
+    f_ = lambda t: f(g(t)) * g_(t)
 
     def next_level(eval_sets, h):
+        # This handles the next eval_set down
         stop_at = q * (3/h)
-        if remove_first_point:
-            cur_sum = 0
-        else:
-            cur_sum = f(a)
-        es_h = h if h == h_init else h * 2.0
-        es_a = h / 2 ** (len(eval_sets) - 1)
-        eval_sets.append(EvalSet(f, es_a, es_h))
-        x = None
-        for outer_index, eval_set, inner_index in navigate(eval_sets):
+        cur_sum = f_(0)
+        # Depth is 0-based, so we set this before we've added the latest EvalSet
+        depth = len(eval_sets)
+        print "Depth level:", depth
+        es_h = h if depth == 0 else h * 2.0
+        es_a = h / 2 ** (depth)
+        eval_sets.append(EvalSet(f_, es_a, es_h))
+        # Don't want to have a ZeroDivisionError
+        max_iter = int(1.0/h)
+        for outer_index, eval_set, inner_index in navigate(eval_sets, max_iter):
             val = eval_set[inner_index]
-            outer_index %= 2
-            if outer_index:
+            odd = outer_index % 2
+            if odd:
                 cur_sum += val * 4
             else:
-                if cur_sum + val > stop_at or (outer_index > max_init_iter):
-                    x = eval_set.x_at(inner_index)
-                    break
+                if cur_sum + val > stop_at:
+                    return cur_sum + val, eval_set.x_at(inner_index)
                 cur_sum += val * 2
-            outer_index += 1
-        return cur_sum, x
+        # The asumption here is that if we haven't found the mass we are looking for at this point, then we
+        # are probably missing mass that is all lumped up by itself somewhere, and need to greatly decrease
+        # our incremement size
+        raise MissingMass
 
-    def still_converging(cur_sum, last_sum):
-        if not last_sum:
+    def still_converging(sums):
+        def within(s1, s2):
+            return abs(1 - s1 / s2) > tolerance
+
+        if len(sums) < 3:
             return True
-        return abs(1 - cur_sum / last_sum) > tolerance
+        return within(sums[-1], sums[-2]) and within(sums[-2], sums[-3])
+
+    def final_iterpolate():
+        pass
 
     eval_sets = []
-    last_sum = None
-    cur_sum = None
     x = None
+    sums = []
 
     h = h_init
-    level = 0
-    while still_converging(cur_sum, last_sum):
-        level += 1
-        last_sum = cur_sum
-        cur_sum, x = next_level(eval_sets, h)
-        cur_sum *= (h/3)
+    while still_converging(sums):
+        try:
+            cur_sum, x = next_level(eval_sets, h)
+        except MissingMass:
+            print "Missing mass - decreasing h_init"
+            return simpson_quant_hp(h, q, a=a, tolerance=tolerance, h_init=h_init*(0.1))
+        sums.append(cur_sum * (h/3))
         h /= 2.0
+    
+    # This is required to transform the limit of integration back into the original unbounded coordinates
+    return g(x)
 
-    return x
-
-
-
-def simple_simpson_quant(f, a, q, h=10e-6):
-    S = f(a) + 4*f(a+h)
-    stop_at = q * (3/h)
-
-    i = 2
-    while S + f(a + i*h) < stop_at:
-        # even
-        S += 2 * f(a + i*h)
-        i += 1
-        # odd
-        S += 4 * f(a + i*h)
-        i += 1
-
-    return a + i*h
 
 
 def normal_test():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('q', default=0.25, type=float)
+    parser.add_argument('-t', default=1e-5, type=float)
+    args = parser.parse_args()
     from scipy.stats import norm
-    print "Actual solition: ", norm.ppf(0.75)
-    print "My solution:     ", simpson_quant(norm.pdf, 0.0, 0.25)
+    from time import time
+    t1 = time()
+    solution = simpson_quant_hp(norm.pdf, args.q, tolerance=args.t)
+    t2 = time()
+    print "Actual solition: ", norm.ppf(0.5 + args.q)
+    print "My solution:     ", solution
+    print "\nTime: ", t2 - t1, "s\n"
 
 
 
