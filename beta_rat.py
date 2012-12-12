@@ -183,13 +183,15 @@ def cli():
     import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
             description="""
-    Beta ratio (v {}) for contingency table
+    Beta Rat (v {})!!! Awesome contingency table stats!
+
+    For table
 
                 X1   X2
          succ   a    b
          fail   c    d
 
-    Evaluates probability that P1 / P2 < q.""".format(__version__)
+    Evaluates quantile q of X1/X2.""".format(__version__)
             )
 
     parser.add_argument('a', type=int, help='# sucesses in X1')
