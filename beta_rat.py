@@ -3,6 +3,9 @@
 from __future__ import division
 import scipy
 import scipy.special
+#import matplotlib
+import pylab
+from scipy import integrate
 
 
 VERBOSE = False
@@ -25,10 +28,21 @@ class BetaRat(object):
         self.a1, self.a2, self.b1, self.b2 = a1, a2, b1, b2
         self.A = B(a1, b1) * B(a2, b2)
         self.Blt = B(a1 + a2, b2) 
-        self.Bgt = B(a1 + a2, b1) 
+        self.Bgt = B(a1 + a2, b1)
+
+    def __repr__(self):
+        return "BetaRat({}, {}, {}, {})".format(self.a1, self.a2, self.b1, self.b2)
+
+    def pdfs(self, ws):
+        """ PDF of list - basically so we can apply scipy.integrate for CDF. """
+        return [self.pdf(w) for w in ws]
+
+    def cfd(self, w):
+        """ Cumulative density function. """
+        return integrate.quadrature(self.pdfs, 0, w)[0]
 
     def pdf(self, w):
-        """ Probability density function at value w """
+        """ Probability density function. """
         if w <= 1:
             return self.Blt * (w ** (self.a1 -1)) * h2f1(self.a1 + self.a2, 1 - self.b1, self.a1 + self.a2 +
                     self.b2, w) / self.A
@@ -37,7 +51,15 @@ class BetaRat(object):
                     self.b1, 1/w) / self.A
 
     def ppf(self, q, **kw_args):
+        """ Quantile function. Keyword args are the same as for simpson_quant_hp. """
         return simpson_quant_hp(self.pdf, q, **kw_args)
+
+    def plot_pdf(self, a, b, points=100):
+        xs = pylab.arange(a, b, (b-a)/points)
+        pylab.plot(xs, self.pdfs(xs))
+        pylab.legend()
+
+
 
 
 
@@ -116,7 +138,7 @@ def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
         # Depth is 0-based, so we set this before we've added the latest EvalSet
         depth = len(eval_sets)
         if VERBOSE:
-            print "Depth level:", depth
+            print "Depth level:", depth,
         es_h = h if depth == 0 else h * 2.0
         es_a = h / 2 ** (depth)
         eval_sets.append(EvalSet(f_, es_a, es_h))
@@ -137,12 +159,12 @@ def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
         raise MissingMass
 
     def still_converging(sums):
-        def within(s1, s2):
+        def not_within_tol(s1, s2):
             return abs(1 - s1 / s2) > tolerance
 
         if len(sums) < 3:
             return True
-        return within(sums[-1], sums[-2]) and within(sums[-2], sums[-3])
+        return not_within_tol(sums[-1], sums[-2]) and not_within_tol(sums[-2], sums[-3])
 
     def final_iterpolate():
         pass
@@ -158,6 +180,10 @@ def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
         except MissingMass:
             print "Missing mass - decreasing h_init"
             return simpson_quant_hp(f, q, a=a, tolerance=tolerance, h_init=h_init*(0.1))
+        if VERBOSE:
+            print "   Val:", cur_sum * (h/3),
+            print "   x:", x,
+            print "   g(x):", g(x)
         sums.append(cur_sum * (h/3))
         h /= 2.0
     
@@ -210,17 +236,21 @@ def cli():
 
     parser.add_argument('--prior-succ', type=float, help='prior on beta(a*, b*)', default=1)
     parser.add_argument('--prior-fail', type=float, help='prior on beta(a*, b*)', default=1)
+    parser.add_argument('--h-init', type=float, help='initial step size in (0,1)', default=0.005)
+    parser.add_argument('--verbose', action='store_true', default=False)
 
     #parser.add_argument('--prob-diff', type=float, default=0.0, help='Test that P1 - P2 > prob-diff')
-
     args = parser.parse_args()
+
+    global VERBOSE
+    VERBOSE = args.verbose
 
     a, b, c, d = [getattr(args, x) for x in ['a', 'b', 'c', 'd']]
 
     beta_rat = BetaRat(a + args.prior_succ, b + args.prior_succ, c + args.prior_fail, d + args.prior_fail)
-    result = beta_rat.ppf(args.q)
+    result = beta_rat.ppf(args.q, h_init=args.h_init)
 
-    print "\nP ( P1 / P2 < q ) =", result, '\n'
+    print "\nPPF = ", result, '\n'
 
 
 
