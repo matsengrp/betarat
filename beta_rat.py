@@ -3,7 +3,6 @@
 from __future__ import division
 import scipy
 import scipy.special
-#import matplotlib
 import pylab
 from scipy import integrate
 
@@ -15,7 +14,6 @@ __version__ = '0.0.1'
 
 B = scipy.special.beta
 h2f1 = scipy.special.hyp2f1
-gamma = scipy.special.gamma
 
 
 def bigA(a1, a2, b1, b2):
@@ -23,42 +21,68 @@ def bigA(a1, a2, b1, b2):
 
 class BetaRat(object):
     """ Bata Ratio class - instantiate for an object on which to compute pdf etc """
-    def __init__(self, a1, a2, b1, b2):
+    def __init__(self, a1, a2, b1, b2, no_inverting=False):
         """ Arguments a1, a2, b1, b2 are the beta parameters for distributions X1 and X2 """
+        # See invert_pdf_if_needed for explanation of this madness
         self.a1, self.a2, self.b1, self.b2 = a1, a2, b1, b2
-        self.A = B(a1, b1) * B(a2, b2)
-        self.Blt = B(a1 + a2, b2) 
-        self.Bgt = B(a1 + a2, b1)
+        if a1/b1 > a2/b2 and not no_inverting:
+            self.inverted = self.invert()
+        else:
+            self.inverted = False
+
+        self.A = B(self.a1, self.b1) * B(self.a2, self.b2)
+        self.Blt = B(self.a1 + self.a2, self.b2) 
+        self.Bgt = B(self.a1 + self.a2, self.b1)
+
+    def invert(self):
+        return BetaRat(self.a2, self.a1, self.b2, self.b1)
+
+    def invert_ppf_if_needed(orig_ppf):
+        """ This evaluates the integral we want based off of the integral we can compute......"""
+        def wrapper(self, q, **kw_args):
+            if self.inverted:
+                return 1 / orig_ppf(self.inverted, 1-q, **kw_args)
+            else:
+                return orig_ppf(self, q, **kw_args)
+        return wrapper
 
     def __repr__(self):
-        return "BetaRat({}, {}, {}, {})".format(self.a1, self.a2, self.b1, self.b2)
+        rep = "BetaRat({}, {}, {}, {})".format(self.a1, self.a2, self.b1, self.b2)
+        if self.inverted:
+            rep += "<inv>"
+        return rep
 
     def pdfs(self, ws):
         """ PDF of list - basically so we can apply scipy.integrate for CDF. """
         return [self.pdf(w) for w in ws]
 
-    def cfd(self, w):
+    def cdf(self, w):
         """ Cumulative density function. """
         return integrate.quadrature(self.pdfs, 0, w)[0]
 
     def pdf(self, w):
         """ Probability density function. """
         if w <= 1:
-            return self.Blt * (w ** (self.a1 -1)) * h2f1(self.a1 + self.a2, 1 - self.b1, self.a1 + self.a2 +
-                    self.b2, w) / self.A
+            return (self.Blt *
+                (w ** (self.a1 -1)) * 
+                h2f1(self.a1 + self.a2, 1 - self.b1, self.a1 + self.a2 + self.b2, w) /
+                self.A)
         else:
-            return self.Bgt * (w ** -(1+self.a2)) * h2f1(self.a1 + self.a2, 1 - self.b2, self.a1 + self.a2 +
-                    self.b1, 1/w) / self.A
-
+            return (self.Bgt *
+                (w ** -(1+self.a2)) *
+                h2f1(self.a1 + self.a2, 1 - self.b2, self.a1 + self.a2 + self.b1, 1.0/w) /
+                self.A)
+    
+    @invert_ppf_if_needed
     def ppf(self, q, **kw_args):
         """ Quantile function. Keyword args are the same as for simpson_quant_hp. """
         return simpson_quant_hp(self.pdf, q, **kw_args)
 
     def plot_pdf(self, a, b, points=100):
-        xs = pylab.arange(a, b, (b-a)/points)
-        pylab.plot(xs, self.pdfs(xs))
+        inc = float(b-a) / points
+        xs = pylab.arange(a, b, inc)
+        pylab.plot(xs, self.pdfs(xs), label=self.__repr__())
         pylab.legend()
-
 
 
 
@@ -90,6 +114,8 @@ class EvalSet(object):
 class MissingMass(Exception):
     pass
 
+class MaximumDepthReached(Exception):
+    pass
 
 
 def determine_eval_set(i, n):
@@ -238,6 +264,7 @@ def cli():
     parser.add_argument('--prior-fail', type=float, help='prior on beta(a*, b*)', default=1)
     parser.add_argument('--h-init', type=float, help='initial step size in (0,1)', default=0.005)
     parser.add_argument('--verbose', action='store_true', default=False)
+    parser.add_argument('--no-inverting', action='store_true', default=False)
 
     #parser.add_argument('--prob-diff', type=float, default=0.0, help='Test that P1 - P2 > prob-diff')
     args = parser.parse_args()
@@ -247,29 +274,17 @@ def cli():
 
     a, b, c, d = [getattr(args, x) for x in ['a', 'b', 'c', 'd']]
 
-    beta_rat = BetaRat(a + args.prior_succ, b + args.prior_succ, c + args.prior_fail, d + args.prior_fail)
+    beta_rat = BetaRat(a + args.prior_succ, b + args.prior_succ, c + args.prior_fail, d + args.prior_fail,
+            no_inverting=args.no_inverting)
+    if VERBOSE:
+        print "Inverted?: ", beta_rat.inverted
     result = beta_rat.ppf(args.q, h_init=args.h_init)
 
     print "\nPPF = ", result, '\n'
 
 
 
-
 if __name__ == '__main__':
     cli()
-
-
-
-
-# Here there be dragons
-def h3F2(a1, a2, c, b1, d, z):
-    g_part = gamma(d) / (gamma(c) * gamma(d-c))
-    def integrand(t):
-        t_part = t ** (c-1) * (1 - t) ** (d-c-1)
-        return t_part * h2f1(a1, a2, b1, t*z)
-    return g_part * scipy.integrate.quad(integrand, 0, 1)
-
-def cdf(a1, a2, b1, b2, w):
-    pass
 
 
