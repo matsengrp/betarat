@@ -1,23 +1,53 @@
 #!/usr/bin/env python
 
 from __future__ import division
-import scipy
-import scipy.special
 import pylab
 from scipy import integrate
+import numpy
+import mpmath
+import math
+import scipy
+from scipy.special import beta
+from decimal import Decimal
+
 
 
 VERBOSE = False
 
-
 __version__ = '0.0.1'
 
-B = scipy.special.beta
-h2f1 = scipy.special.hyp2f1
+
+def plot_fn(f, a, b, points=100, label=None):
+    """ Nice utility function for plotting functions using pylab."""
+    inc = float(b-a) / points
+    xs = pylab.arange(a, b, inc)
+    ys = [f(x) for x in xs]
+    if not label:
+        label = str(f)
+    pylab.plot(xs, ys, label=label)
+    pylab.legend()
+
+def h2f1(a, b, c, z):
+    """ This is an implementation of the Guasian Hypergeometric function; 2F1. This particular implementation
+    depends on b being a non-positive integer, which is the case in the entirety of our domain range. """
+    ids = xrange(-1*(b+1), -1, -1)
+    # Decimal indices - this hsould make each term below a decimal...
+    a, b, c, z = (Decimal(x) for x in (a, b, c, z))
+    terms = (z * (a+i) * (b+i) / ((i+1) * (c+i)) for i in ids)
+    return float(reduce(lambda x, y: x*y + 1, terms, 1))
+
+def numpy_h2f1(a, b, c, z):
+    ids = xrange(-1*(b+1), -1, -1)
+    terms = (numpy.float64(z * (a+i) * (b+i) / ((i+1) * (c+i))) for i in ids)
+    return reduce(lambda x, y: x*y + 1, terms, 1)
 
 
-def bigA(a1, a2, b1, b2):
-    return 
+def scipy_h2f1(out_type=numpy.float128):
+    def func(a, b, c, z):
+        out = numpy.array([1.0], dtype=out_type)
+        return scipy.special.hyp2f1(a, b, c, z, out)
+    return func
+
 
 class BetaRat(object):
     """ Bata Ratio class - instantiate for an object on which to compute pdf etc """
@@ -30,18 +60,28 @@ class BetaRat(object):
         else:
             self.inverted = False
 
-        self.A = B(self.a1, self.b1) * B(self.a2, self.b2)
-        self.Blt = B(self.a1 + self.a2, self.b2) 
-        self.Bgt = B(self.a1 + self.a2, self.b1)
+        self.A = beta(self.a1, self.b1) * beta(self.a2, self.b2)
+        self.Blt = beta(self.a1 + self.a2, self.b2) 
+        self.Bgt = beta(self.a1 + self.a2, self.b1)
+
+    def h2f1_l(self, w, hypf=h2f1):
+        return hypf(self.a1 + self.a2, 1 - self.b1, self.a1 + self.a2 + self.b2, w)
+
+    def h2f1_r(self, w, hypf=h2f1):
+        return hypf(self.a1 + self.a2, 1 - self.b2, self.a1 + self.a2 + self.b1, 1.0/w)
 
     def invert(self):
         return BetaRat(self.a2, self.a1, self.b2, self.b1)
 
     def invert_ppf_if_needed(orig_ppf):
-        """ This evaluates the integral we want based off of the integral we can compute......"""
+        """ This evaluates the integral using the inverse ratio X2/x1 if we would naively estimate that ratio
+        to be > 1. """
         def wrapper(self, q, **kw_args):
             if self.inverted:
-                return 1 / orig_ppf(self.inverted, 1-q, **kw_args)
+                inv_ppf = orig_ppf(self.inverted, 1-q, **kw_args)
+                if inv_ppf == 'NA':
+                    return inv_ppf
+                return 1 / inv_ppf
             else:
                 return orig_ppf(self, q, **kw_args)
         return wrapper
@@ -52,6 +92,15 @@ class BetaRat(object):
             rep += "<inv>"
         return rep
 
+    def int_pdf(self, w):
+        """ This is an implementation of the Guasian Hypergeometric function; 2F1. This particular implementation
+        depends on b being a non-positive integer, which is the case in the entirety of our domain range. """
+        a1, a2, b1, b2 = self.a1, self.a2, self.b1, self.b2
+        def intgrnd(y):
+            return (w*y)**(a1-1) * (1-w*y)**(b1-1) * y**a2 * (1-y)**(b2-1)
+        t = 1 if w <= 1 else w ** (-1)
+        return integrate.quadrature(lambda ys: [intgrnd(y) for y in ys], 0, t)[0] / (beta(a1, b1) * beta(a2, b2))
+
     def pdfs(self, ws):
         """ PDF of list - basically so we can apply scipy.integrate for CDF. """
         return [self.pdf(w) for w in ws]
@@ -60,30 +109,33 @@ class BetaRat(object):
         """ Cumulative density function. """
         return integrate.quadrature(self.pdfs, 0, w)[0]
 
-    def pdf(self, w):
+    def pdf(self, w, hypf=mpmath.hyp2f1):
         """ Probability density function. """
-        if w <= 1:
+        if w == 0:
+            return 0
+        elif w <= 1:
+            #print "B:", self.Blt, "w-term:", w ** (self.a1 - 1)
             return (self.Blt *
                 (w ** (self.a1 -1)) * 
-                h2f1(self.a1 + self.a2, 1 - self.b1, self.a1 + self.a2 + self.b2, w) /
+                self.h2f1_l(w, hypf=hypf) /
                 self.A)
         else:
+            #print "B:", self.Bgt, "w-term:", w ** -(1 + self.a2)
             return (self.Bgt *
                 (w ** -(1+self.a2)) *
-                h2f1(self.a1 + self.a2, 1 - self.b2, self.a1 + self.a2 + self.b1, 1.0/w) /
+                self.h2f1_r(w, hypf=hypf) /
                 self.A)
     
     @invert_ppf_if_needed
-    def ppf(self, q, **kw_args):
+    def ppf(self, q, max_sum=10, **kw_args):
         """ Quantile function. Keyword args are the same as for simpson_quant_hp. """
-        return simpson_quant_hp(self.pdf, q, **kw_args)
+        try:
+            return simpson_quant_hp(self.pdf, q, max_sum=max_sum, **kw_args)
+        except MaxSumReached:
+            return "NA"
 
     def plot_pdf(self, a, b, points=100):
-        inc = float(b-a) / points
-        xs = pylab.arange(a, b, inc)
-        pylab.plot(xs, self.pdfs(xs), label=self.__repr__())
-        pylab.legend()
-
+        plot_fn(self.pdf, a, b, points=points, label=self.__repr__())
 
 
 
@@ -114,7 +166,7 @@ class EvalSet(object):
 class MissingMass(Exception):
     pass
 
-class MaximumDepthReached(Exception):
+class MaxSumReached(Exception):
     pass
 
 
@@ -145,10 +197,13 @@ def navigate(eval_sets, max_iter):
         yield outer_index, eval_sets[es_index], inner_index(outer_index, depth, es_index)
 
 
-def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
+def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005, max_sum=None):
     """ Simpson Half Plane Quantiles - uses a half infinite interval transform to give finite bounds for
     integration of pdf (all that is needed for the beta_rat distribution since D = [0, \inf)). This function
-    could be modified to use full-infinite integral transform for general use case scenario. """
+    could be modified to use full-infinite integral transform for general use case scenario. 
+    
+    max_sum: If the summation exceeds this value, the assumption will be that something has gone terribly
+    wrong. """
 
     # XXX - Should still really put something in as we were doing that flips the function around the x-axis. Wouldn't
     # be hard and would likely save us a lot of hassle
@@ -192,9 +247,6 @@ def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
             return True
         return not_within_tol(sums[-1], sums[-2]) and not_within_tol(sums[-2], sums[-3])
 
-    def final_iterpolate():
-        pass
-
     eval_sets = []
     x = None
     sums = []
@@ -203,38 +255,36 @@ def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005):
     while still_converging(sums):
         try:
             cur_sum, x = next_level(eval_sets, h)
+            cur_sum *= (h/3)
         except MissingMass:
             print "Missing mass - decreasing h_init"
-            return simpson_quant_hp(f, q, a=a, tolerance=tolerance, h_init=h_init*(0.1))
+            return simpson_quant_hp(f, q, a=a, max_sum=max_sum, tolerance=tolerance, h_init=h_init*(0.1))
         if VERBOSE:
-            print "   Val:", cur_sum * (h/3),
+            print "   Val:", cur_sum,
             print "   x:", x,
             print "   g(x):", g(x)
-        sums.append(cur_sum * (h/3))
+        if max_sum:
+            if cur_sum > max_sum:
+                raise MaxSumReached
+        sums.append(cur_sum)
         h /= 2.0
+
+    # This finishes things off by doing a final polynomial interpolation and solving for x; here use h*2 since
+    # h was divided by 2 in last round
+    x = final_interpolation(f_, q, sums[-1], x, h*2)
     
     # This is required to transform the limit of integration back into the original unbounded coordinates
     return g(x)
 
 
-
-def normal_test():
-    global VERBOSE
-    VERBOSE = True
-
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('q', default=0.25, type=float)
-    parser.add_argument('-t', default=1e-5, type=float)
-    args = parser.parse_args()
-    from scipy.stats import norm
-    from time import time
-    t1 = time()
-    solution = simpson_quant_hp(norm.pdf, args.q, tolerance=args.t)
-    t2 = time()
-    print "Actual solition: ", norm.ppf(0.5 + args.q)
-    print "My solution:     ", solution
-    print "\nTime: ", t2 - t1, "s\n"
+def final_interpolation(f_, q, int_at_x, x, h):
+    """ Assume the function is linear enough over this small interval that we can do a simple interpolation to
+    get what we are looking for. """
+    f2 = f_(x)
+    f1 = f_(x - 2*h)
+    m = (f2 - f1) / (2*h)
+    diff = int_at_x - q
+    return x - (f2 - math.sqrt(f2**2 - 2*m*diff))/m 
 
 
 

@@ -9,7 +9,7 @@ class TestSanity(unittest.TestCase):
         self.assertAlmostEqual(self.br.cdf(1), 0.5, places=4)
 
     def test_ppf(self):
-        self.assertAlmostEqual(self.br.ppf(0.5), 1.0, places=4)
+        self.assertAlmostEqual(self.br.ppf(0.5), 1.0, places=3)
 
 
 class TestFlippingShit(unittest.TestCase):
@@ -26,11 +26,11 @@ class TestFlippingShit(unittest.TestCase):
         self.assertTrue(self.br2.inverted)
 
     def test_inversion_working_on_ppf(self):
-        self.assertAlmostEqual(self.br2.ppf(0.5, tolerance=1e-6, h_init=1e-5),
-                self.br2_unflipped.ppf(0.5, tolerance=1e-6, h_init=1e-5),
+        self.assertAlmostEqual(self.br2.ppf(0.5, h_init=1e-5),
+                self.br2_unflipped.ppf(0.5, h_init=1e-5),
                 places=3)
-        self.assertAlmostEqual(self.br2.ppf(.75, tolerance=1e-6, h_init=1e-5),
-                self.br2_unflipped.ppf(0.75, tolerance=1e-6, h_init=1e-5),
+        self.assertAlmostEqual(self.br2.ppf(.75, h_init=1e-5),
+                self.br2_unflipped.ppf(0.75, h_init=1e-5),
                 places=3)
 
 
