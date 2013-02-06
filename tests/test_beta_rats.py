@@ -14,9 +14,9 @@ class TestSanity(unittest.TestCase):
 
 class TestFlippingShit(unittest.TestCase):
     def setUp(self):
-        self.br1 = BetaRat(5, 10, 45, 40)
-        self.br2 = BetaRat(10, 5, 40, 45)
-        self.br2_unflipped = BetaRat(10, 5, 40, 45, no_inverting=True)
+        self.br1 = BetaRat(5, 10, 45, 40, prior=(0,0))
+        self.br2 = BetaRat(10, 5, 40, 45, prior=(0,0))
+        self.br2_unflipped = BetaRat(10, 5, 40, 45, no_inverting=True, prior=(0,0))
 
     def test_inverted_attrs(self):
         self.assertEqual(self.br2.inverted.a1, 5)

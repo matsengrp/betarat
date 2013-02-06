@@ -51,10 +51,11 @@ def scipy_h2f1(out_type=numpy.float128):
 
 class BetaRat(object):
     """ Bata Ratio class - instantiate for an object on which to compute pdf etc """
-    def __init__(self, a1, a2, b1, b2, no_inverting=False):
-        """ Arguments a1, a2, b1, b2 are the beta parameters for distributions X1 and X2 """
+    def __init__(self, a1, a2, b1, b2, no_inverting=False, prior=(1.0, 1.0)):
+        """ Arguments a1, a2, b1, b2 are the beta parameters for distributions X1 and X2. Now can specify a
+        prior which will be tacked on to (a1, b1) and (a2, b2). """
         # See invert_pdf_if_needed for explanation of this madness
-        self.a1, self.a2, self.b1, self.b2 = a1, a2, b1, b2
+        self.a1, self.a2, self.b1, self.b2 = a1 + prior[0], a2 + prior[0], b1 + prior[1], b2 + prior[1]
         if a1/b1 > a2/b2 and not no_inverting:
             self.inverted = self.invert()
         else:
@@ -71,7 +72,7 @@ class BetaRat(object):
         return hypf(self.a1 + self.a2, 1 - self.b2, self.a1 + self.a2 + self.b1, 1.0/w)
 
     def invert(self):
-        return BetaRat(self.a2, self.a1, self.b2, self.b1)
+        return BetaRat(self.a2, self.a1, self.b2, self.b1, prior=(0,0))
 
     def invert_ppf_if_needed(orig_ppf):
         """ This evaluates the integral using the inverse ratio X2/x1 if we would naively estimate that ratio
@@ -310,8 +311,10 @@ def cli():
 
     parser.add_argument('q', type=float, help='quantile', default=0.05)
 
-    parser.add_argument('--prior-succ', type=float, help='prior on beta(a*, b*)', default=1)
-    parser.add_argument('--prior-fail', type=float, help='prior on beta(a*, b*)', default=1)
+    def csv_arg(arg_string):
+        return arg_string.split(',')
+
+    parser.add_argument('--prior', type=float, help='Prior on beta distributions.', nargs=2, default=(1.0,1.0))
     parser.add_argument('--h-init', type=float, help='initial step size in (0,1)', default=0.005)
     parser.add_argument('--verbose', action='store_true', default=False)
     parser.add_argument('--no-inverting', action='store_true', default=False)
@@ -322,10 +325,9 @@ def cli():
     global VERBOSE
     VERBOSE = args.verbose
 
-    a, b, c, d = [getattr(args, x) for x in ['a', 'b', 'c', 'd']]
+    br_params = [getattr(args, x) for x in ['a', 'b', 'c', 'd']]
 
-    beta_rat = BetaRat(a + args.prior_succ, b + args.prior_succ, c + args.prior_fail, d + args.prior_fail,
-            no_inverting=args.no_inverting)
+    beta_rat = BetaRat(*br_params, no_inverting=args.no_inverting, prior=args.prior)
     if VERBOSE:
         print "Inverted?: ", beta_rat.inverted
     result = beta_rat.ppf(args.q, h_init=args.h_init)
