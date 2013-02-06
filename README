@@ -1,0 +1,7 @@
+
+## TODO
+
+* Clean out junk/scrap hyp2f1 stuff. Consolidate solutions here.
+    * In particular, set up so that the fast C impl is used if b is int
+    * Else use mpmath imp, with notes that getting gmpy set up should speed things up a lot
+
