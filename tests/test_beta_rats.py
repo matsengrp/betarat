@@ -11,6 +11,17 @@ class TestSanity(unittest.TestCase):
     def test_ppf(self):
         self.assertAlmostEqual(self.br.ppf(0.5), 1.0, places=3)
 
+class TestHandlingZeros(unittest.TestCase):
+    """ Having some issues with the new priors leading to Zero divisions. Gonna try to fix this up."""
+    def test_creation(self):
+        BetaRat(0, 0, 0, 0, prior=(0,0))
+
+    def test_pdf(self):
+        BetaRat(0, 0, 0, 0, prior=(0,0)).pdf(0.5)
+        self.assertEqual(BetaRat(0, 0, 0, 0, prior=(0,0)).pdf(0.0), 0)
+
+    def test_pdf_on_0(self):
+        self.assertEqual(BetaRat(1, 3, 5, 7).pdf(0.0), 0)
 
 class TestFlippingShit(unittest.TestCase):
     def setUp(self):

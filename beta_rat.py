@@ -56,10 +56,11 @@ class BetaRat(object):
         prior which will be tacked on to (a1, b1) and (a2, b2). """
         # See invert_pdf_if_needed for explanation of this madness
         self.a1, self.a2, self.b1, self.b2 = a1 + prior[0], a2 + prior[0], b1 + prior[1], b2 + prior[1]
-        if a1/b1 > a2/b2 and not no_inverting:
+        if a1*b2 > a2*b1 and not no_inverting:
             self.inverted = self.invert()
         else:
             self.inverted = False
+
 
         self.A = beta(self.a1, self.b1) * beta(self.a2, self.b2)
         self.Blt = beta(self.a1 + self.a2, self.b2) 
