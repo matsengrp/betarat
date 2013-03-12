@@ -11,6 +11,9 @@ from scipy.special import beta
 from decimal import Decimal
 import hyp2f1
 
+import argparse
+import time
+
 
 
 VERBOSE = False
@@ -290,62 +293,103 @@ def final_interpolation(f_, q, int_at_x, x, h):
     return x - (f2 - math.sqrt(f2**2 - 2*m*diff))/m 
 
 
+# Start 
 
-def cli():
-    import argparse
-    import time
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
-            description="""
-    Beta Rat (v {})!!! Awesome contingency table stats!
-
-    For table
-
+table_string = """
                 X1   X2
          succ   a    b
          fail   c    d
+         """
 
-    Evaluates quantile q of X1/X2.""".format(__version__)
-            )
+def setup_common_args(subparser):
+    # Hmm... just discovered the parents attribute. Might want to try using this
+    subparser.add_argument('a', type=int, help='# sucesses in X1')
+    subparser.add_argument('b', type=int, help='# sucesses in X2')
+    subparser.add_argument('c', type=int, help='# failures in X1')
+    subparser.add_argument('d', type=int, help='# failures in X2')
 
-    parser.add_argument('a', type=int, help='# sucesses in X1')
-    parser.add_argument('b', type=int, help='# sucesses in X2')
-    parser.add_argument('c', type=int, help='# failures in X1')
-    parser.add_argument('d', type=int, help='# failures in X2')
-
-    parser.add_argument('q', type=float, help='quantile', default=0.05)
-
-    def csv_arg(arg_string):
+    def cs_arg(arg_string):
         return arg_string.split(',')
 
-    parser.add_argument('--prior', type=float, help='Prior on beta distributions.', nargs=2, default=(1.0,1.0))
-    parser.add_argument('--h-init', type=float, help='initial step size in (0,1)', default=0.005)
-    parser.add_argument('--verbose', action='store_true', default=False)
-    parser.add_argument('--no-inverting', action='store_true', default=False)
+    prior_group = subparser.add_mutually_exclusive_group()
+    prior_group.add_argument('--prior', type=float, help='Prior on Beta distributions. [default: %(default)s]', nargs=2, default=(1.0,1.0))
+    prior_group.add_argument('--jeff', help='Use Jeffreys Prior on Beta distributions.', action='store_const',
+            dest='prior', const=(0.5, 0.5))
+    prior_group.add_argument('--rare',
+            help='Use prior Beta(0.5, 1.0): corresponds to a belief that failures are more likely than successes.',
+            action='store_const', dest='prior', const=(0.5, 1.0))
 
-    #parser.add_argument('--prob-diff', type=float, default=0.0, help='Test that P1 - P2 > prob-diff')
-    args = parser.parse_args()
+    subparser.add_argument('-v', '--verbose', action='store_true', default=False)
+    subparser.add_argument('--no-inverting', action='store_true', default=False)
 
-    global VERBOSE
-    VERBOSE = args.verbose
 
+def setup_cli_br(args):
     br_params = [getattr(args, x) for x in ['a', 'b', 'c', 'd']]
-
     beta_rat = BetaRat(*br_params, no_inverting=args.no_inverting, prior=args.prior)
     if VERBOSE:
         print "Inverted?: ", beta_rat.inverted
+    return beta_rat
 
 
-    t1 = time.time()
-    for i in xrange(10):
-        result = beta_rat.ppf(args.q, h_init=args.h_init)
-    t2 = time.time()
+def setup_ppf_args(subparsers):
+    ppf_args = subparsers.add_parser('ppf',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description='Compute ppf(q) of beta ratio (X1/X2) for table\n{}'.format(table_string))
 
-    print "\nPPF =", result, '\n'
-    print "Time =", t2 - t1, "\n"
+    setup_common_args(ppf_args)
+    ppf_args.add_argument('--h-init', type=float, help='initial step size in (0,1). [default: %(default)s]', default=0.005)
+    ppf_args.add_argument('q', type=float, help='quantile [default: %(default)s]', nargs="?", default=0.05)
+
+    def func(args):
+        br = setup_cli_br(args)
+        result = br.ppf(args.q, h_init=args.h_init)
+
+        print "\nPPF({}) = {}\n".format(args.q, result)
+        
+    ppf_args.set_defaults(func=func)
+
+
+def setup_cdf_args(subparsers):
+    cdf_args = subparsers.add_parser('cdf',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description='Compute cdf(w) of beta ratio (X1/X2) for table\n{}'.format(table_string))
+    setup_common_args(cdf_args)
+    cdf_args.add_argument('w', type=float, help='integrate ppf from 0 to w [default: %(default)s]', nargs="?",
+            default=1.0)
+
+    def func(args):
+        br = setup_cli_br(args)
+        result = br.cdf(args.w)
+
+        print "\nCDF({}) = {}\n".format(args.w, result)
+
+    cdf_args.set_defaults(func=func)
+
+
+def main():
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="""
+    Beta Rat (v {})!!! Awesome Bayesian contingency table stats!
+
+    For table
+    {}
+    compute either ppf or cdf of X1/X2.""".format(__version__, table_string))
+
+    subparsers = parser.add_subparsers(title='subcommands', help='additional help')
+
+    setup_ppf_args(subparsers)
+    setup_cdf_args(subparsers)
+
+    args = parser.parse_args()
+    
+    global VERBOSE
+    VERBOSE = args.verbose
+
+    args.func(args)
 
 
 
 if __name__ == '__main__':
-    cli()
+    main()
 
 
