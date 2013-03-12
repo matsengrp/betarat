@@ -9,6 +9,7 @@ import math
 import scipy
 from scipy.special import beta
 from decimal import Decimal
+import hyp2f1
 
 
 
@@ -116,13 +117,12 @@ class BetaRat(object):
         if w == 0:
             return 0
         elif w <= 1:
-            #print "B:", self.Blt, "w-term:", w ** (self.a1 - 1)
             return (self.Blt *
                 (w ** (self.a1 -1)) * 
                 self.h2f1_l(w, hypf=hypf) /
                 self.A)
+                
         else:
-            #print "B:", self.Bgt, "w-term:", w ** -(1 + self.a2)
             return (self.Bgt *
                 (w ** -(1+self.a2)) *
                 self.h2f1_r(w, hypf=hypf) /
@@ -271,9 +271,10 @@ def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005, max_sum=None):
         sums.append(cur_sum)
         h /= 2.0
 
+    # Taking this out for now... It's occasionally calling pdf wtih negative w values. No bueno..
     # This finishes things off by doing a final polynomial interpolation and solving for x; here use h*2 since
     # h was divided by 2 in last round
-    x = final_interpolation(f_, q, sums[-1], x, h*2)
+    #x = final_interpolation(f_, q, sums[-1], x, h*2)
     
     # This is required to transform the limit of integration back into the original unbounded coordinates
     return g(x)
@@ -292,6 +293,7 @@ def final_interpolation(f_, q, int_at_x, x, h):
 
 def cli():
     import argparse
+    import time
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
             description="""
     Beta Rat (v {})!!! Awesome contingency table stats!
@@ -331,9 +333,15 @@ def cli():
     beta_rat = BetaRat(*br_params, no_inverting=args.no_inverting, prior=args.prior)
     if VERBOSE:
         print "Inverted?: ", beta_rat.inverted
-    result = beta_rat.ppf(args.q, h_init=args.h_init)
 
-    print "\nPPF = ", result, '\n'
+
+    t1 = time.time()
+    for i in xrange(10):
+        result = beta_rat.ppf(args.q, h_init=args.h_init)
+    t2 = time.time()
+
+    print "\nPPF =", result, '\n'
+    print "Time =", t2 - t1, "\n"
 
 
 
