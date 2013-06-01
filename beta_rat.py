@@ -12,7 +12,6 @@ from decimal import Decimal
 import hyp2f1
 
 import argparse
-import time
 
 
 
@@ -149,7 +148,8 @@ class BetaRat(object):
         except MaxSumReached:
             return "NA"
 
-    def plot_pdf(self, a, b, points=100):
+    def plot_pdf(self, a=0, b=5, points=100):
+        """ Convenience function for plotting a BetaRatio using pylab over the range (a, b) with points points"""
         plot_fn(self.pdf, a, b, points=points, label=self.__repr__())
 
 
