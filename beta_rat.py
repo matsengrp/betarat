@@ -2,7 +2,7 @@
 
 from __future__ import division
 import pylab
-from scipy import integrate
+from scipy import integrate, optimize
 import numpy
 import mpmath
 import math
@@ -136,6 +136,10 @@ class BetaRat(object):
                 (w ** -(1+self.a2)) *
                 self.h2f1_r(w, hypf=hypf) /
                 self.A)
+
+    def pdf_max(self):
+        """ For computing the maximum as a metric for what we think the relative rate might actually be."""
+        return optimize.brent(lambda w: - self.pdf(w))
     
     @invert_ppf_if_needed
     def ppf(self, q, max_sum=10, **kw_args):
