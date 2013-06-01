@@ -41,12 +41,15 @@ def h2f1(a, b, c, z):
     return float(reduce(lambda x, y: x*y + 1, terms, 1))
 
 def numpy_h2f1(a, b, c, z):
+    """ This is a similar function to the above, only using numpy instead of Decimal. """
     ids = xrange(-1*(b+1), -1, -1)
     terms = (numpy.float64(z * (a+i) * (b+i) / ((i+1) * (c+i))) for i in ids)
     return reduce(lambda x, y: x*y + 1, terms, 1)
 
 
 def scipy_h2f1(out_type=numpy.float128):
+    """ This is just a wrapper for the scipy h2f1 function - makes using in the BetaRat code a little
+    easier"""
     def func(a, b, c, z):
         out = numpy.array([1.0], dtype=out_type)
         return scipy.special.hyp2f1(a, b, c, z, out)
@@ -71,12 +74,15 @@ class BetaRat(object):
         self.Bgt = beta(self.a1 + self.a2, self.b1)
 
     def h2f1_l(self, w, hypf=h2f1):
+        """ Left hand side of the function. """
         return hypf(self.a1 + self.a2, 1 - self.b1, self.a1 + self.a2 + self.b2, w)
 
     def h2f1_r(self, w, hypf=h2f1):
+        """ Right hand side of the function. """
         return hypf(self.a1 + self.a2, 1 - self.b2, self.a1 + self.a2 + self.b1, 1.0/w)
 
     def invert(self):
+        """ Return inverted version of this beta ratio... """
         return BetaRat(self.a2, self.a1, self.b2, self.b1, prior=(0,0))
 
     def invert_ppf_if_needed(orig_ppf):
