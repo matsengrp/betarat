@@ -3,12 +3,9 @@
 from __future__ import division
 import pylab
 from scipy import integrate, optimize
-import numpy
 import mpmath
 import math
-import scipy
 from scipy.special import beta
-from decimal import Decimal
 import hyp2f1
 
 import argparse
@@ -30,30 +27,6 @@ def plot_fn(f, a, b, points=100, label=None):
     pylab.plot(xs, ys, label=label)
     pylab.legend()
 
-def h2f1(a, b, c, z):
-    """ This is an implementation of the Guasian Hypergeometric function; 2F1. This particular implementation
-    depends on b being a non-positive integer, which is the case in the entirety of our domain range. """
-    ids = xrange(-1*(b+1), -1, -1)
-    # Decimal indices - this hsould make each term below a decimal...
-    a, b, c, z = (Decimal(x) for x in (a, b, c, z))
-    terms = (z * (a+i) * (b+i) / ((i+1) * (c+i)) for i in ids)
-    return float(reduce(lambda x, y: x*y + 1, terms, 1))
-
-def numpy_h2f1(a, b, c, z):
-    """ This is a similar function to the above, only using numpy instead of Decimal. """
-    ids = xrange(-1*(b+1), -1, -1)
-    terms = (numpy.float64(z * (a+i) * (b+i) / ((i+1) * (c+i))) for i in ids)
-    return reduce(lambda x, y: x*y + 1, terms, 1)
-
-
-def scipy_h2f1(out_type=numpy.float128):
-    """ This is just a wrapper for the scipy h2f1 function - makes using in the BetaRat code a little
-    easier"""
-    def func(a, b, c, z):
-        out = numpy.array([1.0], dtype=out_type)
-        return scipy.special.hyp2f1(a, b, c, z, out)
-    return func
-
 
 class BetaRat(object):
     """ Bata Ratio class - instantiate for an object on which to compute pdf etc """
@@ -72,11 +45,11 @@ class BetaRat(object):
         self.Blt = beta(self.a1 + self.a2, self.b2) 
         self.Bgt = beta(self.a1 + self.a2, self.b1)
 
-    def h2f1_l(self, w, hypf=h2f1):
+    def h2f1_l(self, w, hypf=mpmath.hyp2f1):
         """ Left hand side of the function. """
         return hypf(self.a1 + self.a2, 1 - self.b1, self.a1 + self.a2 + self.b2, w)
 
-    def h2f1_r(self, w, hypf=h2f1):
+    def h2f1_r(self, w, hypf=mpmath.hyp2f1):
         """ Right hand side of the function. """
         return hypf(self.a1 + self.a2, 1 - self.b2, self.a1 + self.a2 + self.b1, 1.0/w)
 
@@ -102,15 +75,6 @@ class BetaRat(object):
         if self.inverted:
             rep += "<inv>"
         return rep
-
-    def int_pdf(self, w):
-        """ This is an implementation of the Guasian Hypergeometric function; 2F1. This particular implementation
-        depends on b being a non-positive integer, which is the case in the entirety of our domain range. """
-        a1, a2, b1, b2 = self.a1, self.a2, self.b1, self.b2
-        def intgrnd(y):
-            return (w*y)**(a1-1) * (1-w*y)**(b1-1) * y**a2 * (1-y)**(b2-1)
-        t = 1 if w <= 1 else w ** (-1)
-        return integrate.quadrature(lambda ys: [intgrnd(y) for y in ys], 0, t)[0] / (beta(a1, b1) * beta(a2, b2))
 
     def pdfs(self, ws):
         """ PDF of list - basically so we can apply scipy.integrate for CDF. """
