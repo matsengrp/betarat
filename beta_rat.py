@@ -113,6 +113,16 @@ class BetaRat(object):
         except MaxSumReached:
             return "NA"
 
+    def stupid_ppf(self, q, **kw_args):
+        """ Quantile function. Keyword args are the same as for simpson_quant_hp. """
+        def find_outer(b=1):
+            if self.cdf(b) > q:
+                return b
+            else:
+                return find_outer(b*2)
+        return optimize.brenth(lambda x: self.cdf(x) - q, 0, find_outer())
+
+
     def plot_pdf(self, a=0, b=5, points=100):
         """ Convenience function for plotting a BetaRatio using pylab over the range (a, b) with points points"""
         plot_fn(self.pdf, a, b, points=points, label=self.__repr__())
@@ -313,11 +323,15 @@ def setup_ppf_args(subparsers):
 
     setup_common_args(ppf_args)
     ppf_args.add_argument('--h-init', type=float, help='initial step size in (0,1). [default: %(default)s]', default=0.005)
+    ppf_args.add_argument('--stupid', action="store_true", help='solve for cdf = q', default=False)
     ppf_args.add_argument('q', type=float, help='quantile [default: %(default)s]', nargs="?", default=0.05)
 
     def func(args):
         br = setup_cli_br(args)
-        result = br.ppf(args.q, h_init=args.h_init)
+        if args.stupid:
+            result = br.stupid_ppf(args.q)
+        else:
+            result = br.ppf(args.q, h_init=args.h_init)
 
         print "\nPPF({}) = {}\n".format(args.q, result)
         
