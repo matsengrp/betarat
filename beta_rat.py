@@ -389,8 +389,14 @@ def main():
     global VERBOSE
     VERBOSE = args.verbose
 
+    if VERBOSE:
+        t0 = time.time()
+
     args.func(args)
 
+    if VERBOSE:
+        t1 = time.time()
+        print "Time taken:", t1-t0, "sec\n"
 
 
 if __name__ == '__main__':
