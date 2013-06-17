@@ -5,6 +5,7 @@ import pylab
 from scipy import integrate, optimize
 import mpmath
 import math
+import time
 from scipy.special import beta
 import hyp2f1
 
@@ -100,8 +101,8 @@ class BetaRat(object):
                 self.h2f1_r(w, hypf=hypf) /
                 self.A)
 
-    def pdf_max(self):
-        """ For computing the maximum as a metric for what we think the relative rate might actually be."""
+    def map(self):
+        """ Maximum a posteriori: compute the mode of the posterior distribution. """
         return optimize.brent(lambda w: - self.pdf(w))
     
     @invert_ppf_if_needed
@@ -339,6 +340,20 @@ def setup_cdf_args(subparsers):
 
     cdf_args.set_defaults(func=func)
 
+def setup_map_args(subparsers):
+    map_args = subparsers.add_parser('map',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description='Compute MAP of beta ratio (X1/X2) distribution for table\n{}'.format(table_string))
+    setup_common_args(map_args)
+
+    def func(args):
+        br = setup_cli_br(args)
+        result = br.map()
+
+        print "\nMAP = {}\n".format(result)
+
+    map_args.set_defaults(func=func)
+
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -347,12 +362,13 @@ def main():
 
     For table
     {}
-    compute either ppf or cdf of X1/X2.""".format(__version__, table_string))
+    compute either PPF, CDF or MAP of Beta ratio distribution (X1/X2).""".format(__version__, table_string))
 
     subparsers = parser.add_subparsers(title='subcommands', help='additional help')
 
     setup_ppf_args(subparsers)
     setup_cdf_args(subparsers)
+    setup_map_args(subparsers)
 
     args = parser.parse_args()
     
