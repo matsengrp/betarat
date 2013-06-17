@@ -151,7 +151,7 @@ class MaxSumReached(Exception):
 
 
 def determine_eval_set(i, n):
-    """ Awesome Aaron Magic Sauce - operation that find the least significant digit in the
+    """ Awesome Aaron G. Magic Sauce - operation that find the least significant digit in the
     bitwise and operation, as this will be the index of the eval set that we will need when n
     is the depth of our eval_set_list (init dept==0)."""
     i %= 2 ** n
@@ -309,7 +309,7 @@ def setup_cli_br(args):
 def setup_ppf_args(subparsers):
     ppf_args = subparsers.add_parser('ppf',
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            description='Compute ppf(q) of beta ratio (X1/X2) for table\n{}'.format(table_string))
+            description='Compute ppf(q) of beta ratio (X1/X2) distribution for table\n{}'.format(table_string))
 
     setup_common_args(ppf_args)
     ppf_args.add_argument('--h-init', type=float, help='initial step size in (0,1). [default: %(default)s]', default=0.005)
@@ -327,7 +327,7 @@ def setup_ppf_args(subparsers):
 def setup_cdf_args(subparsers):
     cdf_args = subparsers.add_parser('cdf',
             formatter_class=argparse.RawDescriptionHelpFormatter,
-            description='Compute cdf(w) of beta ratio (X1/X2) for table\n{}'.format(table_string))
+            description='Compute cdf(w) of beta ratio (X1/X2) distribution for table\n{}'.format(table_string))
     setup_common_args(cdf_args)
     cdf_args.add_argument('w', type=float, help='integrate ppf from 0 to w [default: %(default)s]', nargs="?",
             default=1.0)
