@@ -5,7 +5,9 @@ functions by integrating along the domain until it reaches the point x where the
 obtained. It repeats this process for smaller and smaller step sizes until x has converged within some
 tolerance.
 
-Currently, this implemementation is limited by the fact that
+Currently, this implemementation is limited in that the primary function it provides, hp_simpson_quant, only
+works on a half plain. The underlying machinery could be made to work in general using a different transform,
+but only the half plain is needed here.
 """
 
 import betarat
@@ -35,9 +37,17 @@ class EvalSet(object):
 
 
 class MissingMass(Exception):
+    """MissingMass - if you expect that it should be possible to integrate up to a certain value (for
+    example, if you have a probability distribution, it should be possible to construct an integral with any
+    value 0 < x < 1), but after reaching the end of the domain this mass has not been obtained, this is an
+    indication that your step size is too large, and that it needs to be greatly decreased."""
     pass
 
 class MaxSumReached(Exception):
+    """MaxSumReached - With probability distritions, your integral should never greatly exceed 1.0. Observing
+    this sort of behaviour is a sign that you might be experiencing numerical difficulties in your
+    computations (or that something else is wrong). This exception can be handled as you wish in such cases.
+    """
     pass
 
 
@@ -70,11 +80,14 @@ def navigate(eval_sets, max_iter):
 
 def simpson_quant_hp(f, q, a=0, tolerance=5e-4, h_init=0.005, max_sum=None):
     """ Simpson Half Plane Quantiles - uses a half infinite interval transform to give finite bounds for
-    integration of pdf (all that is needed for the beta_rat distribution since D = [0, \inf)). This function
-    could be modified to use full-infinite integral transform for general use case scenario. 
+    integration of pdf (all that is needed for the beta_rat distribution since D = [0, \inf)).
     
-    max_sum: If the summation exceeds this value, the assumption will be that something has gone terribly
-    wrong. """
+    max_sum: If the summation exceeds this value, the assumption will be that something has gone wrong (useful
+    if you know, for example, that your integration should never exceed 1.0 - allows you to catch numerical
+    instabilities, as found in compoutation of the hypergeometric).
+    tolerance: Convergence criteria
+    h_init: initial incremement for Simpson integration
+    """
 
     # XXX - Should still really put something in as we were doing that flips the function around the x-axis. Wouldn't
     # be hard and would likely save us a lot of hassle
