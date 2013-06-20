@@ -132,7 +132,7 @@ class BetaRat(object):
         """
         Quantile function (AKA Percentile Point Function).
         This convenience function wraps either optim_ppf or simpson ppf, as specied by `method` argument.
-        Anyw keyword args are passed along to the appropriate function.
+        Any keyword args are passed along to the appropriate function.
         """
         if method == 'optim':
             fn = self.optim_ppf
