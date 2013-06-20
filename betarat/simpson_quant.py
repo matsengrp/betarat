@@ -1,11 +1,10 @@
-
 """
 This module implements an adapted version of Simpson integration appropriate for computing quantiles. It
 functions by integrating along the domain until it reaches the point x where the desired mass Q has been
 obtained. It repeats this process for smaller and smaller step sizes until x has converged within some
 tolerance.
 
-Currently, this implemementation is limited in that the primary function it provides, hp_simpson_quant, only
+Currently, this implemementation is limited in that the primary function it provides, simpson_quant_hp, only
 works on a half plain. The underlying machinery could be made to work in general using a different transform,
 but only the half plain is needed here.
 """
