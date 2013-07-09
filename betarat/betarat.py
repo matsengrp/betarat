@@ -1,5 +1,5 @@
-#!/usr/bin/env python
 
+#!/usr/bin/env python
 from __future__ import division
 from scipy import integrate, optimize
 from scipy.special import beta
@@ -113,7 +113,7 @@ class BetaRat(object):
         except MaxSumReached:
             return "NA"
 
-    def optim_ppf(self, q, maxiter=100, **kw_args):
+    def optim_ppf(self, q, maxiter=75, **kw_args):
         """
         Quantile function (AKA Percentile Point Function).
         This implementation uses scipy.optimize to solve for CDF(x) = Q. While in some cases, the
