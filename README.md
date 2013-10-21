@@ -1,10 +1,9 @@
-
 # BetaRat
 
 _this document is still under active development, but should stabilize soon_
 
 The _BetaRat_ distribution is the ratio of two _Beta_ distributed random variables.
-Since Bayesian analysis of a binomially distributed random variable naturally leads to the _Beta_ distribution, the _BetaRat_ distribution can be used as a way of comparing the binomially distributed random variables.
+Since Bayesian analysis of a binomially distributed random variable naturally leads to the _Beta_ distribution, the _BetaRat_ distribution can be used as a way of comparing two binomially distributed random variables.
 This can be particularly useful for considering analysis of contingency tables from a Bayesian perspective.
 Indeed, the "gold standard" of contingency table tests for small to moderate trial counts is the Fisher exact test.
 This test has been shown to be inappropriate in cases where the margins of the contingency table are not fixed (that is, in almost any situation other than [the lady tasting tea](http://en.wikipedia.org/wiki/Lady_tasting_tea), for which it was designed).
