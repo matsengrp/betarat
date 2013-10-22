@@ -5,6 +5,7 @@ from scipy.special import beta
 from simpson_quant import simpson_quant_hp, MaxSumReached
 from utils import plot_fn
 import mpmath
+import math
 
 
 # Global
@@ -99,6 +100,16 @@ class BetaRat(object):
         situations where this is not a problem, the median and MAP tend to agree fairly well.
         """
         return optimize.brent(lambda w: - self.pdf(w))
+
+    def lt_pdf(self, t):
+        "Log transformed posterior density function"
+        return math.exp(t) * self.pdf(math.exp(t))
+
+    def lt_map(self):
+        """Exponential of the MAP of the log transformed PDF: This estimator more equally treats relative
+        probability ratios less more equally than those greater than oen. However, this comes at the expense
+        of a higher mean square error as an estimator."""
+        return math.exp(optimize.brent(lambda t: - self.lt_pdf(t)))
     
     @invert_ppf_if_needed
     def simpson_ppf(self, q, max_sum=10, **kw_args):
@@ -148,4 +159,10 @@ class BetaRat(object):
         allow you to use this function. """
         plot_fn(self.pdf, a, b, points=points, label=self.__repr__())
 
+    def plot_ltpdf(self, a=-5, b=5, points=100):
+        """ Convenience function for plotting a BetaRat using pylab over the range (a, b) with points
+        points. As one might expect, this requires the pylab library, and it is suggested that the ipython
+        library be used for this. For example, running `ipython --pylab` and importing this module should
+        allow you to use this function. """
+        plot_fn(self.lt_pdf, a, b, points=points, label=self.__repr__())
 
