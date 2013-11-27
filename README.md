@@ -1,6 +1,6 @@
 # BetaRat
 
-_this document is still under active development, but should stabilize soon_
+_This document is still under active development, but should stabilize soon_
 
 The _BetaRat_ distribution is the ratio of two _Beta_ distributed random variables.
 Since Bayesian analysis of a binomially distributed random variable naturally leads to the _Beta_ distribution, the _BetaRat_ distribution can be used as a way of comparing two binomially distributed random variables.
@@ -58,13 +58,15 @@ This implementation can be chosen by passing `method='simpson'` to `BetaRat.pdf`
 
 ## Installation
 
-Currently, BetaRat has only been tested on Linux systems, but it should be possible to get it set up on OSX fairly easily.
-If you do get it set up on OSX or Windows and have any tips to share, please feel free to add a page to [the wiki](https://github.com/fhcrc/betarat/wiki).
+Currently, BetaRat has only been tested on Linux systems, but OSX installation should be fairly easy.
+Below, we'll guide you step by step through installation on Ubuntu Linux, and provide some general guidance for dependencies on other 'nix systems.
+If you do set this up on another system and would like to share any useful tips, please feel free to add a page to [the wiki](https://github.com/fhcrc/betarat/wiki).
+If you have trouble, please submit a [github issue](https://github.com/fhcrc/betarat/issues), and we'll try to help you out.
 
 ### Pre-requisites
 
 First, you'll need a version of python (this program has only been tested on python 2.7) installed.
-Many Linux distros come with python 2.7 presinstalled, as does OSX.
+Many Linux distros come with python 2.7 preinstalled, as does OSX.
 
 You will also need the following python libraries:
 
@@ -74,17 +76,18 @@ You will also need the following python libraries:
 * mpmath
 * setuptools (and/or pip)
 
-You will also need the libgmp library to be accessible on your system.
+You will also need the `libgmp` library to be accessible on your system.
 
 If you are running Ubuntu, you should be able to handle all of these dependencies with the following
 
     sudo apt-get libgmp-dev python-pip python-scipy python-numpy python-mpmath cython
 
-If you are running OSX or another flavor of linux, we recommend first installing pip.
-There should be resources online for installing the rest of the requirements given a functional python environemnt with pip.
+If you are running OSX or another flavor of Linux, we recommend first installing [pip](https://pypi.python.org/pypi/pip), and using that to install the remaining python packages.
+These other packages may require additional libraries (such as libblas and liblapack) which you will have to install manually.
+The python libraries' websites should provide all necessary information on these lines.
 
-If you experience any errors with one of these libraries, try executing the command a second time.
-If you still have difficulties, please feel free to submit an [issue on github](https://github.com/fhcrc/betarat/issues), and we'll try to help you out.
+One last note: mpmath is currently incompatible with gmpy2, but should work fine with gmpy(1).
+If you need gmpy2 for some other use on your system, you may have to set up a [virtualenv](https://pypi.python.org/pypi/virtualenv) for one project or the other.
 
 ### With that out of the way...
 
