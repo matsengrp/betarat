@@ -24,5 +24,5 @@ setup(name='betarat',
         packages=['betarat', 'betarat/rf_hyp2f1', 'betarat/scripts'],
         cmdclass={"build_ext": build_ext},
         ext_modules=ext_modules,
-        requires=['scipy', 'mpmath'])
+        requires=['scipy', 'mpmath', 'cython', 'numpy'])
 

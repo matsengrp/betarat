@@ -55,3 +55,54 @@ The suggested and default method is use of `scipy.optimize` to directly solve fo
 An alternative method employs a modified implementation of Simpson's method of numerical integration which "stops' after a certain.
 This implementation can be chosen by passing `method='simpson'` to `BetaRat.pdf`.
 
+
+## Installation
+
+Currently, BetaRat has only been tested on Linux systems, but it should be possible to get it set up on OSX fairly easily.
+If you do get it set up on OSX or Windows and have any tips to share, please feel free to add a page to [the wiki](https://github.com/fhcrc/betarat/wiki).
+
+### Pre-requisites
+
+First, you'll need a version of python (this program has only been tested on python 2.7) installed.
+Many Linux distros come with python 2.7 presinstalled, as does OSX.
+
+You will also need the following python libraries:
+
+* numpy
+* scipy
+* cython
+* mpmath
+* setuptools (and/or pip)
+
+You will also need the libgmp library to be accessible on your system.
+
+If you are running Ubuntu, you should be able to handle all of these dependencies with the following
+
+    sudo apt-get libgmp-dev python-pip python-scipy python-numpy python-mpmath cython
+
+If you are running OSX or another flavor of linux, we recommend first installing pip.
+There should be resources online for installing the rest of the requirements given a functional python environemnt with pip.
+
+If you experience any errors with one of these libraries, try executing the command a second time.
+If you still have difficulties, please feel free to submit an [issue on github](https://github.com/fhcrc/betarat/issues), and we'll try to help you out.
+
+### With that out of the way...
+
+Now we can install BetaRat!
+From a terminal, enter these lines:
+
+    # I like to download source code to a src directory in my home folder
+    mkdir -p ~/src
+    cd ~/src
+
+    # download and unzip the betarat source code
+    wget https://github.com/fhcrc/betarat/archive/master.zip -O betarat.zip
+    unzip betarat.zip
+    cd betarat-master
+
+    # install (sudo may not be necessary, depending on how you set up your python environment)
+    sudo python setup.py install
+
+And there you have it!
+You can try running `betarat -h` from the command line to test your installation.
+
