@@ -49,15 +49,20 @@ def setup_ppf_args(subparsers):
 
     setup_common_args(ppf_args)
     ppf_args.add_argument('--h-init', type=float, help='initial step size in (0,1). [default: %(default)s]', default=0.005)
-    ppf_args.add_argument('--stupid', action="store_true", help='solve for cdf = q', default=False)
+    ppf_args.add_argument('--simpson', action="store_true", default=False,
+            help="""Use simpson_ppf method instead of solving directly for cdf = q. This method is a modified
+            form of the simpson method of integration, adapted for computation of percentiles. While this
+            is often faster than solving for cdf = q directly, it can also be significantly slower in cases
+            of very peaked distributions, and is generally much less accurate. As such, we advise
+            against this option.""")
     ppf_args.add_argument('q', type=float, help='quantile [default: %(default)s]', nargs="?", default=0.05)
 
     def func(args):
         br = setup_cli_br(args)
-        if args.stupid:
-            result = br.stupid_ppf(args.q)
+        if args.simpson:
+            result = br.ppf(args.q, method="simpson", h_init=args.h_init)
         else:
-            result = br.ppf(args.q, h_init=args.h_init)
+            result = br.ppf(args.q)
 
         print "\nPPF({}) = {}\n".format(args.q, result)
         
@@ -123,4 +128,9 @@ def main():
     if VERBOSE:
         t1 = time.time()
         print "Time taken:", t1-t0, "sec\n"
+
+
+if __name__ == '__main__':
+    main()
+
 
