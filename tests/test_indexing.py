@@ -1,6 +1,6 @@
 import unittest
 import math
-from beta_rat import determine_eval_set, navigate, EvalSet
+from betarat.simpson_quant import determine_eval_set, navigate, EvalSet
 
 class TestIndexing(unittest.TestCase):
     def setUp(self):
