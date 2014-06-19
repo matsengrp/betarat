@@ -1,5 +1,5 @@
 
-from betarat import BetaRat, VERBOSE
+from betarat import BetaRat, VERBOSE, defaults
 from betarat.version import __version__
 import argparse
 import time 
@@ -30,8 +30,14 @@ def setup_common_args(subparser):
             help='Use prior Beta(0.5, 1.0): corresponds to a belief that failures are more likely than successes.',
             action='store_const', dest='prior', const=(0.5, 1.0))
 
+    subparser.add_argument('-m', '--quadr-maxiter', type=int, default=defaults['quadr_maxiter'],
+            help="Value of maxiter passed to the scipy.integrate.quadrature function for CDF computation.")
+    subparser.add_argument('-M', '--optim-maxiter', type=int, default=defaults['optim_maxiter'],
+            help="Value of maxiter passed to scipy.optimize.brenth for MAP and PPF computation.")
+    subparser.add_argument('--no-inverting', action='store_true', default=False,
+            help="""Unless this flag is specified, betarat may compute the desired metrics by transforming the
+            values computed from the inverse BetaRatio distribution.""" )
     subparser.add_argument('-v', '--verbose', action='store_true', default=False)
-    subparser.add_argument('--no-inverting', action='store_true', default=False)
 
 
 def setup_cli_br(args):
@@ -62,7 +68,7 @@ def setup_ppf_args(subparsers):
         if args.simpson:
             result = br.ppf(args.q, method="simpson", h_init=args.h_init)
         else:
-            result = br.ppf(args.q)
+            result = br.ppf(args.q, quadr_maxiter=args.quadr_maxiter, optim_maxiter=args.optim_maxiter)
 
         print "\nPPF({}) = {}\n".format(args.q, result)
         
@@ -79,7 +85,7 @@ def setup_cdf_args(subparsers):
 
     def func(args):
         br = setup_cli_br(args)
-        result = br.cdf(args.w)
+        result = br.cdf(args.w, quadr_maxiter=args.quadr_maxiter)
 
         print "\nCDF({}) = {}\n".format(args.w, result)
 
@@ -93,7 +99,7 @@ def setup_map_args(subparsers):
 
     def func(args):
         br = setup_cli_br(args)
-        result = br.map()
+        result = br.map(quadr_maxiter=args.quadr_maxiter, optim_maxiter=args.quadr_maxiter)
 
         print "\nMAP = {}\n".format(result)
 
