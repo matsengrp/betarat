@@ -1,0 +1,14 @@
+
+
+1.0.0
+
+* Fixed CLI ppf; was still based on older API
+* Added ability to specify maxiter for both scipy quadrature and optim calls, exposed via API and CLI
+* Fixed tests failing from changed namespacing
+* Cleaned up importation and usage of rf_hyp2f1
+
+0.1.2
+
+Started tracking...
+
+
