@@ -80,7 +80,7 @@ You will also need the `libgmp` library to be accessible on your system.
 
 If you are running Ubuntu, you should be able to handle all of these dependencies with the following
 
-    sudo apt-get libgmp-dev python-pip python-scipy python-numpy python-mpmath cython
+    sudo apt-get install libgmp-dev python-pip python-scipy python-numpy python-mpmath cython
 
 If you are running OSX or another flavor of Linux, we recommend first installing [pip](https://pypi.python.org/pypi/pip), and using that to install the remaining python packages.
 These other packages may require additional libraries (such as libblas and liblapack) which you will have to install manually.
