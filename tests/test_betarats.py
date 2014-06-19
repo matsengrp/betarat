@@ -38,7 +38,6 @@ class TestFlippingShit(unittest.TestCase):
         self.assertTrue(self.br2.inverted)
 
     def test_inversion_working_on_ppf(self):
-        print "here we are"
         self.assertAlmostEqual(self.br2.ppf(0.5, h_init=1e-5, method="simpson"),
                 self.br2_unflipped.ppf(0.5, h_init=1e-5, method="simpson"),
                 places=3)
