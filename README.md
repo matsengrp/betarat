@@ -1,7 +1,5 @@
 # BetaRat
 
-_This document is still under active development, but should stabilize soon_
-
 The _BetaRat_ distribution is the ratio of two _Beta_ distributed random variables.
 Since Bayesian analysis of a binomially distributed random variable naturally leads to the _Beta_ distribution, the _BetaRat_ distribution can be used as a way of comparing two binomially distributed random variables.
 This can be particularly useful for considering analysis of contingency tables from a Bayesian perspective.
